@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard Executivo - Maio</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --bg1:#050816; --bg2:#111827; --card:rgba(255,255,255,.08);
+      --border:rgba(255,255,255,.14); --text:#f8fafc; --muted:#94a3b8;
+      --blue:#38bdf8; --purple:#a855f7; --green:#22c55e;
+      --yellow:#facc15; --red:#ef4444;
+    }
+
+    * { box-sizing:border-box; margin:0; padding:0; font-family:Inter,Segoe UI,Arial,sans-serif; }
+
+    body {
+      min-height:100vh;
+      background:
+        radial-gradient(circle at top left, rgba(56,189,248,.25), transparent 30%),
+        radial-gradient(circle at top right, rgba(168,85,247,.24), transparent 35%),
+        linear-gradient(135deg,var(--bg1),var(--bg2));
+      color:var(--text);
+      padding:28px;
+    }
+
+    .dashboard { max-width:1500px; margin:auto; }
+
+    header {
+      display:grid;
+      grid-template-columns:1.5fr .8fr;
+      gap:24px;
+      margin-bottom:28px;
+    }
+
+    .glass {
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:24px;
+      backdrop-filter:blur(20px);
+      box-shadow:0 24px 80px rgba(0,0,0,.35);
+    }
+
+    .hero, .executive-note, .card, .chart-card, .table-card { padding:26px; }
+
+    .badge {
+      display:inline-flex;
+      padding:8px 12px;
+      border-radius:999px;
+      background:rgba(56,189,248,.12);
+      color:var(--blue);
+      font-size:13px;
+      margin-bottom:18px;
+    }
+
+    h1 {
+      font-size:clamp(30px,4vw,50px);
+      line-height:1.05;
+      margin-bottom:14px;
+    }
+
+    h2 { font-size:20px; margin-bottom:8px; }
+    h3 { font-size:16px; color:var(--muted); margin-bottom:12px; }
+
+    .subtitle, .insight, .muted {
+      color:var(--muted);
+      line-height:1.55;
+      font-size:14px;
+    }
+
+    .kpis {
+      display:grid;
+      grid-template-columns:repeat(4,1fr);
+      gap:18px;
+      margin-bottom:24px;
+    }
+
+    .card { transition:.25s ease; }
+    .card:hover { transform:translateY(-4px); border-color:rgba(56,189,248,.45); }
+
+    .label { color:var(--muted); font-size:13px; margin-bottom:10px; }
+    .value { font-size:30px; font-weight:800; letter-spacing:-.03em; }
+    .delta { margin-top:12px; font-size:13px; color:var(--muted); }
+
+    .status {
+      display:inline-flex;
+      margin-top:12px;
+      padding:7px 11px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+    }
+
+    .green { background:rgba(34,197,94,.14); color:var(--green); }
+    .yellow { background:rgba(250,204,21,.14); color:var(--yellow); }
+    .red { background:rgba(239,68,68,.14); color:var(--red); }
+    .blue { background:rgba(56,189,248,.14); color:var(--blue); }
+    .purple { background:rgba(168,85,247,.14); color:var(--purple); }
+
+    .grid {
+      display:grid;
+      grid-template-columns:1.25fr .85fr;
+      gap:22px;
+      margin-bottom:22px;
+    }
+
+    .grid-3 {
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      gap:18px;
+      margin-bottom:24px;
+    }
+
+    canvas { width:100%!important; max-height:360px; }
+
+    table {
+      width:100%;
+      border-collapse:collapse;
+      margin-top:12px;
+    }
+
+    th,td {
+      padding:13px 12px;
+      text-align:left;
+      border-bottom:1px solid rgba(255,255,255,.08);
+      font-size:13px;
+    }
+
+    th { color:var(--muted); font-weight:600; }
+    td { color:#e5e7eb; }
+
+    .section { margin-bottom:24px; }
+
+    .pill {
+      display:inline-flex;
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+    }
+
+    @media(max-width:1100px){
+      header,.grid { grid-template-columns:1fr; }
+      .kpis,.grid-3 { grid-template-columns:repeat(2,1fr); }
+    }
+
+    @media(max-width:700px){
+      body { padding:16px; }
+      .kpis,.grid-3 { grid-template-columns:1fr; }
+      th,td { font-size:12px; padding:10px 8px; }
+    }
+  </style>
+</head>
+
+<body>
+<main class="dashboard">
+
+  <header>
+    <section class="hero glass">
+      <div class="badge">✦ Maio | Inteligência Estratégica Comercial</div>
+      <h1>Resultado Maio 2026</h1>
+      <p class="subtitle">
+        Visão consolidada de performance por linha, origem, renovações, vendas, campanhas e ativações.
+      </p>
+    </section>
+
+    <section class="executive-note glass">
+      <h3>Leitura executiva</h3>
+      <p id="executiveSummary" class="subtitle"></p>
+    </section>
+  </header>
+
+  <section class="kpis">
+    <div class="card glass">
+      <div class="label">Meta Geral</div>
+      <div class="value" id="metaGeral"></div>
+    </div>
+
+    <div class="card glass">
+      <div class="label">Total Realizado</div>
+      <div class="value" id="totalRealizado"></div>
+    </div>
+
+    <div class="card glass">
+      <div class="label">Atingimento Geral</div>
+      <div class="value" id="atingimentoGeral"></div>
+      <span id="statusGeral" class="status"></span>
+    </div>
+
+    <div class="card glass">
+      <div class="label">Diferença vs Meta</div>
+      <div class="value" id="diferencaGeral"></div>
+      <div class="delta" id="diferencaPct"></div>
+    </div>
+  </section>
+
+  <section class="grid">
+    <div class="chart-card glass">
+      <h2>Meta vs Realizado por Bloco</h2>
+      <p class="insight">Comparativo executivo dos principais blocos de meta.</p>
+      <canvas id="barBlocos"></canvas>
+    </div>
+
+    <div class="chart-card glass">
+      <h2>Gauge de Atingimento Geral</h2>
+      <p class="insight">Resultado consolidado da operação no mês.</p>
+      <canvas id="gaugeGeral"></canvas>
+    </div>
+  </section>
+
+  <section class="chart-card glass section">
+    <h2>Resultado por Categoria</h2>
+    <p class="insight">Distribuição do realizado por categoria comercial.</p>
+    <canvas id="categoriasChart"></canvas>
+  </section>
+
+  <section class="chart-card glass section">
+    <h2>Ativações</h2>
+    <p class="insight">Volume realizado versus meta de ativações por linha.</p>
+    <canvas id="ativacoesChart"></canvas>
+  </section>
+
+  <section class="grid-3">
+    <div class="card glass">
+      <div class="label">Meta CLIPP</div>
+      <div class="value" id="metaClipp"></div>
+      <div class="delta">Participação principal da meta geral</div>
+    </div>
+
+    <div class="card glass">
+      <div class="label">Meta SMALL</div>
+      <div class="value" id="metaSmall"></div>
+      <div class="delta">Bloco complementar de receita</div>
+    </div>
+
+    <div class="card glass">
+      <div class="label">Ativações Totais</div>
+      <div class="value">1.258</div>
+      <span class="status green">Meta superada</span>
+    </div>
+  </section>
+
+  <section class="table-card glass section">
+    <h2>Renovações e Mensalidades</h2>
+    <p class="insight">Bloco com maior peso estratégico. CLIPP ficou abaixo da meta, enquanto SMALL compensou parcialmente com performance superior.</p>
+    <table id="renovacoesTable"></table>
+  </section>
+
+  <section class="table-card glass section">
+    <h2>Vendas por Origem</h2>
+    <p class="insight">Destaques positivos em Renovação Plugin e Full Revenda Hunter; atenção para origens com baixo atingimento.</p>
+    <table id="vendasTable"></table>
+  </section>
+
+  <section class="table-card glass section">
+    <h2>Campanha Vamo Junto</h2>
+    <p class="insight">CLIPP apresentou forte superação da meta, com atingimento excepcional acima de 1.100%.</p>
+    <table id="vamoJuntoTable"></table>
+  </section>
+
+  <section class="table-card glass section">
+    <h2>Ativações por Linha</h2>
+    <p class="insight">O total de ativações superou a meta geral, impulsionado pelo desempenho de CLIPP.</p>
+    <table id="ativacoesTable"></table>
+  </section>
+
+</main>
+
+<script>
+const resumoGeral = {
+  mes: "Maio",
+  metaGeral: 3626405.51,
+  metaClipp: 2991453.50,
+  metaSmall: 634952.01,
+  totalRealizado: 3703668.06
+};
+
+const categoriasData = [
+  { categoria: "Black", valor: 212542.61 },
+  { categoria: "Bronze", valor: 90507.08 },
+  { categoria: "Diamante", valor: 1024534.65 },
+  { categoria: "Ouro", valor: 334927.70 },
+  { categoria: "Ouro Duplo", valor: 268931.71 },
+  { categoria: "Prata", valor: 405079.74 },
+  { categoria: "Usuário Final", valor: 755943.35 },
+  { categoria: "Indicador", valor: 6044.20 }
+];
+
+const renovacoesData = [
+  { linha:"CLIPP", origem:"Renovação 12 Meses Revendas", meta:1631012.31, realizado:1440851.83, atingido:88.34, faltouRenovar:424291.80, faltouMeta:190160.48, faltaSobra:-234131.32 },
+  { linha:"CLIPP", origem:"Renovação 12 Meses Usuário Final", meta:714415.30, realizado:649977.22, atingido:90.98, faltouRenovar:145351.20, faltouMeta:64438.08, faltaSobra:-80913.12 },
+  { linha:"CLIPP", origem:"Mensalidades", meta:148000.00, realizado:147302.91, atingido:99.53, faltouRenovar:13975.84, faltouMeta:697.09, faltaSobra:-13278.75 },
+
+  { linha:"SMALL", origem:"Renovação 12 Meses Revendas", meta:391349.20, realizado:411116.80, atingido:105.05, faltouRenovar:169658.00, faltouMeta:0, faltaSobra:19767.60 },
+  { linha:"SMALL", origem:"Renovação 12 Meses Usuário Final", meta:130696.48, realizado:116365.00, atingido:89.03, faltouRenovar:21000.80, faltouMeta:14331.48, faltaSobra:-6669.32 },
+  { linha:"SMALL", origem:"Mensalidades", meta:8200.00, realizado:12660.19, atingido:154.39, faltouRenovar:1571.43, faltouMeta:0, faltaSobra:4460.19 }
+];
+
+const vendasData = [
+  { linha:"CLIPP", origem:"Full Revenda", meta:216000.00, realizado:191807.11, atingido:88.80, faltouMeta:24192.89 },
+  { linha:"CLIPP", origem:"Full Plugin", meta:81000.00, realizado:75007.86, atingido:92.60, faltouMeta:5992.14 },
+  { linha:"CLIPP", origem:"Full Usuário", meta:42750.00, realizado:34751.09, atingido:81.29, faltouMeta:7998.91 },
+  { linha:"CLIPP", origem:"Renovação Plugin", meta:113170.00, realizado:134535.41, atingido:118.88, faltouMeta:0 },
+  { linha:"CLIPP", origem:"Full Revenda Hunter", meta:5000.00, realizado:7000.00, atingido:140.00, faltouMeta:0 },
+  { linha:"CLIPP", origem:"Full Usuário Hunter", meta:5000.00, realizado:0, atingido:0.00, faltouMeta:5000.00 },
+
+  { linha:"SMALL", origem:"Full Revenda", meta:54000.00, realizado:46662.18, atingido:86.41, faltouMeta:7337.82 },
+  { linha:"SMALL", origem:"Full Plugin + Renovação Plugin", meta:33948.00, realizado:22263.69, atingido:65.58, faltouMeta:11684.31 },
+  { linha:"SMALL", origem:"Full Usuário", meta:10000.00, realizado:7334.60, atingido:73.35, faltouMeta:2665.40 }
+];
+
+const vamoJuntoData = [
+  { linha:"CLIPP", origem:"Vamo Junto CLIPP", meta:35105.89, realizado:406273.84, atingido:1157.28 },
+  { linha:"SMALL", origem:"Vamo Junto SMALL", meta:6758.33, realizado:6758.33, atingido:100.00 }
+];
+
+const ativacoesData = [
+  { linha:"CLIPP", revenda:1069, usuario:35, total:1104, meta:1000, falta:-104 },
+  { linha:"SMALL", revenda:147, usuario:7, total:154, meta:250, falta:96 },
+  { linha:"TOTAL", revenda:1216, usuario:42, total:1258, meta:1250, falta:-8 }
+];
+
+const brl = v => v.toLocaleString("pt-BR", { style:"currency", currency:"BRL" });
+const num = v => v.toLocaleString("pt-BR");
+const pct = v => `${v.toFixed(2).replace(".", ",")}%`;
+
+function statusClass(p) {
+  if (p >= 100) return "green";
+  if (p >= 90) return "yellow";
+  return "red";
+}
+
+function statusText(p) {
+  if (p >= 100) return "Meta batida";
+  if (p >= 90) return "Próximo da meta";
+  return "Abaixo da meta";
+}
+
+function renderKPIs() {
+  const atingimento = resumoGeral.totalRealizado / resumoGeral.metaGeral * 100;
+  const diff = resumoGeral.totalRealizado - resumoGeral.metaGeral;
+  const diffPct = diff / resumoGeral.metaGeral * 100;
+
+  document.getElementById("metaGeral").textContent = brl(resumoGeral.metaGeral);
+  document.getElementById("totalRealizado").textContent = brl(resumoGeral.totalRealizado);
+  document.getElementById("atingimentoGeral").textContent = pct(atingimento);
+  document.getElementById("diferencaGeral").textContent = brl(diff);
+  document.getElementById("diferencaPct").textContent = `${pct(diffPct)} acima da meta`;
+  document.getElementById("metaClipp").textContent = brl(resumoGeral.metaClipp);
+  document.getElementById("metaSmall").textContent = brl(resumoGeral.metaSmall);
+
+  const status = document.getElementById("statusGeral");
+  status.textContent = statusText(atingimento);
+  status.className = `status ${statusClass(atingimento)}`;
+
+  document.getElementById("executiveSummary").textContent =
+    `Em maio, o resultado consolidado foi de ${brl(resumoGeral.totalRealizado)}, superando a meta geral de ${brl(resumoGeral.metaGeral)}. ` +
+    `O atingimento foi de ${pct(atingimento)}, com sobra de ${brl(diff)}. O destaque positivo vem de Vamo Junto CLIPP, SMALL Farmer e Ativações CLIPP; o principal ponto de atenção permanece em renovações CLIPP.`;
+}
+
+function makeTable(id, columns, data) {
+  const table = document.getElementById(id);
+  table.innerHTML = `
+    <thead>
+      <tr>${columns.map(c => `<th>${c.label}</th>`).join("")}</tr>
+    </thead>
+    <tbody>
+      ${data.map(row => `
+        <tr>
+          ${columns.map(c => `<td>${c.render(row)}</td>`).join("")}
+        </tr>
+      `).join("")}
+    </tbody>
+  `;
+}
+
+function renderTables() {
+  makeTable("renovacoesTable", [
+    { label:"Linha", render:r => r.linha },
+    { label:"Origem", render:r => r.origem },
+    { label:"Meta", render:r => brl(r.meta) },
+    { label:"Realizado", render:r => brl(r.realizado) },
+    { label:"% Atingido", render:r => pct(r.atingido) },
+    { label:"Faltou Renovar", render:r => brl(r.faltouRenovar) },
+    { label:"Faltou para Meta", render:r => r.faltouMeta > 0 ? brl(r.faltouMeta) : "Meta batida" },
+    { label:"Status", render:r => `<span class="pill ${statusClass(r.atingido)}">${statusText(r.atingido)}</span>` }
+  ], renovacoesData);
+
+  makeTable("vendasTable", [
+    { label:"Linha", render:r => r.linha },
+    { label:"Origem", render:r => r.origem },
+    { label:"Meta", render:r => brl(r.meta) },
+    { label:"Realizado", render:r => brl(r.realizado) },
+    { label:"% Atingido", render:r => pct(r.atingido) },
+    { label:"Faltou para Meta", render:r => r.faltouMeta > 0 ? brl(r.faltouMeta) : "Meta batida" },
+    { label:"Status", render:r => `<span class="pill ${statusClass(r.atingido)}">${statusText(r.atingido)}</span>` }
+  ], vendasData);
+
+  makeTable("vamoJuntoTable", [
+    { label:"Linha", render:r => r.linha },
+    { label:"Origem", render:r => r.origem },
+    { label:"Meta", render:r => brl(r.meta) },
+    { label:"Realizado", render:r => brl(r.realizado) },
+    { label:"% Atingido", render:r => pct(r.atingido) },
+    { label:"Status", render:r => `<span class="pill ${statusClass(r.atingido)}">${statusText(r.atingido)}</span>` }
+  ], vamoJuntoData);
+
+  makeTable("ativacoesTable", [
+    { label:"Linha", render:r => r.linha },
+    { label:"Revenda", render:r => num(r.revenda) },
+    { label:"Usuário", render:r => num(r.usuario) },
+    { label:"Total", render:r => num(r.total) },
+    { label:"Meta", render:r => num(r.meta) },
+    { label:"Falta/Sobra", render:r => r.falta < 0 ? `Sobra ${num(Math.abs(r.falta))}` : `Falta ${num(r.falta)}` },
+    { label:"Status", render:r => `<span class="pill ${r.total >= r.meta ? "green" : "red"}">${r.total >= r.meta ? "Meta batida" : "Abaixo da meta"}</span>` }
+  ], ativacoesData);
+}
+
+function chartBaseOptions() {
+  return {
+    responsive:true,
+    maintainAspectRatio:false,
+    plugins:{
+      legend:{ labels:{ color:"#cbd5e1", usePointStyle:true }},
+      tooltip:{
+        backgroundColor:"rgba(15,23,42,.96)",
+        titleColor:"#fff",
+        bodyColor:"#cbd5e1",
+        borderColor:"rgba(56,189,248,.35)",
+        borderWidth:1,
+        padding:12
+      }
+    },
+    scales:{
+      x:{ ticks:{ color:"#94a3b8" }, grid:{ color:"rgba(255,255,255,.05)" }},
+      y:{ ticks:{ color:"#94a3b8" }, grid:{ color:"rgba(255,255,255,.06)" }}
+    }
+  };
+}
+
+function renderCharts() {
+  new Chart(document.getElementById("categoriasChart"), {
+    type:"bar",
+    data:{
+      labels:categoriasData.map(item => item.categoria),
+      datasets:[{
+        label:"Realizado",
+        data:categoriasData.map(item => item.valor),
+        backgroundColor:"rgba(56,189,248,.55)",
+        borderColor:"#38bdf8",
+        borderWidth:1,
+        borderRadius:12
+      }]
+    },
+    options:{
+      ...chartBaseOptions(),
+      plugins:{
+        ...chartBaseOptions().plugins,
+        tooltip:{
+          ...chartBaseOptions().plugins.tooltip,
+          callbacks:{
+            label: context => `Realizado: ${brl(context.raw)}`
+          }
+        }
+      },
+      scales:{
+        x:{
+          ticks:{ color:"#94a3b8" },
+          grid:{ color:"rgba(255,255,255,.05)" }
+        },
+        y:{
+          ticks:{
+            color:"#94a3b8",
+            callback: value => brl(value)
+          },
+          grid:{ color:"rgba(255,255,255,.06)" }
+        }
+      }
+    }
+  });
+
+  const blocos = [
+    { nome:"Geral", meta:resumoGeral.metaGeral, realizado:resumoGeral.totalRealizado },
+    { nome:"Renovações", meta:renovacoesData.reduce((s,r)=>s+r.meta,0), realizado:renovacoesData.reduce((s,r)=>s+r.realizado,0) },
+    { nome:"Vendas", meta:vendasData.reduce((s,r)=>s+r.meta,0), realizado:vendasData.reduce((s,r)=>s+r.realizado,0) },
+    { nome:"Vamo Junto", meta:vamoJuntoData.reduce((s,r)=>s+r.meta,0), realizado:vamoJuntoData.reduce((s,r)=>s+r.realizado,0) }
+  ];
+
+  new Chart(document.getElementById("barBlocos"), {
+    type:"bar",
+    data:{
+      labels:blocos.map(b=>b.nome),
+      datasets:[
+        { label:"Meta", data:blocos.map(b=>b.meta), backgroundColor:"rgba(168,85,247,.42)", borderColor:"#a855f7", borderWidth:1, borderRadius:12 },
+        { label:"Realizado", data:blocos.map(b=>b.realizado), backgroundColor:"rgba(56,189,248,.55)", borderColor:"#38bdf8", borderWidth:1, borderRadius:12 }
+      ]
+    },
+    options:chartBaseOptions()
+  });
+
+  const atingimento = resumoGeral.totalRealizado / resumoGeral.metaGeral * 100;
+
+  new Chart(document.getElementById("gaugeGeral"), {
+    type:"doughnut",
+    data:{
+      labels:["Atingido","Restante"],
+      datasets:[{
+        data:[Math.min(atingimento,100), Math.max(0,100 - atingimento)],
+        backgroundColor:["#22c55e","rgba(255,255,255,.08)"],
+        borderWidth:0,
+        cutout:"78%"
+      }]
+    },
+    options:{
+      responsive:true,
+      plugins:{ legend:{ display:false } }
+    },
+    plugins:[{
+      id:"centerText",
+      afterDraw(chart){
+        const {ctx, chartArea} = chart;
+        ctx.save();
+        ctx.font="800 34px Segoe UI";
+        ctx.fillStyle="#f8fafc";
+        ctx.textAlign="center";
+        ctx.fillText(pct(atingimento), (chartArea.left+chartArea.right)/2, (chartArea.top+chartArea.bottom)/2+10);
+      }
+    }]
+  });
+
+  const ranking = [...renovacoesData, ...vendasData, ...vamoJuntoData]
+    .sort((a,b)=>b.atingido-a.atingido)
+    .slice(0,12);
+
+  new Chart(document.getElementById("rankingOrigem"), {
+    type:"bar",
+    data:{
+      labels:ranking.map(r=>`${r.linha} | ${r.origem}`),
+      datasets:[{
+        label:"% Atingido",
+        data:ranking.map(r=>r.atingido),
+        backgroundColor:ranking.map(r => r.atingido >= 100 ? "rgba(34,197,94,.58)" : r.atingido >= 90 ? "rgba(250,204,21,.55)" : "rgba(239,68,68,.52)"),
+        borderRadius:12
+      }]
+    },
+    options:{
+      ...chartBaseOptions(),
+      indexAxis:"y"
+    }
+  });
+
+  new Chart(document.getElementById("ativacoesChart"), {
+    type:"bar",
+    data:{
+      labels:ativacoesData.filter(r=>r.linha!=="TOTAL").map(r=>r.linha),
+      datasets:[
+        { label:"Total", data:ativacoesData.filter(r=>r.linha!=="TOTAL").map(r=>r.total), backgroundColor:"rgba(56,189,248,.55)", borderRadius:12 },
+        { label:"Meta", data:ativacoesData.filter(r=>r.linha!=="TOTAL").map(r=>r.meta), backgroundColor:"rgba(168,85,247,.42)", borderRadius:12 }
+      ]
+    },
+    options:chartBaseOptions()
+  });
+}
+
+renderKPIs();
+renderTables();
+renderCharts();
+</script>
+</body>
+</html>
